@@ -8,91 +8,60 @@ export const useNotes = defineStore("note", () => {
 
   //states
   const notes = ref<Note[]>([])
-  const activeNote = ref<Note | null>(null)
+  const notesLocalStorageKey = "notes";
+  const activeNoteId = ref<string | undefined>()
 
-
-  //note crud
-  const createNote = () => {
-    const id = uuidv4();
-
-    const noteItem: Note = {
-      id,
-      title: "New Note",
-      content: ""
-    }
-
-    notes.value.push(noteItem)
-    saveNotesToLocalStorage(noteItem)
-    setActiveNote(noteItem)
+  // utility
+  const setActiveNoteId = (noteId?: string) => {
+    activeNoteId.value = noteId
   }
 
-  const deleteNote = (id: string) => {
-
-    if (activeNote.value?.id === id) {
-      setActiveNote(null)
-    }
-    let itemToRemove = notes.value.findIndex((note: Note) => note.id === id)
-
-    notes.value.splice(itemToRemove, 1)
-    removeNotesFromLocalStorage(itemToRemove)
-
-  }
-
-
-  const updateNote = () => {
-    const noteToUpdate = notes.value.findIndex((note) => note.id === activeNote.value?.id)
-    if (activeNote.value) {
-      notes.value[noteToUpdate] = activeNote.value
-      updateNotesInlocalStorage(notes.value)
-    }
-
-  }
-
-
-
-  //local storage crud
-  const saveNotesToLocalStorage = (value: Note, key: string = "notes") => {
-    const prevItem = localStorage.getItem(key);
-    if (!prevItem) {
-      localStorage.setItem(key, JSON.stringify([value]))
-    } else {
-      const parsedItem: Note[] = JSON.parse(prevItem);
-      parsedItem.push(value)
-      localStorage.setItem(key, JSON.stringify(parsedItem))
-    }
-  }
-
-
-  const getNotesFromLocalStorage = () => {
-    const storedNotes = localStorage.getItem("notes")
+  const loadNotesFromLocalStorage = () => {
+    const storedNotes = localStorage.getItem(notesLocalStorageKey);
     if (storedNotes) {
       notes.value = JSON.parse(storedNotes) as Note[]
     }
   }
+  //notes crud
+  const createNote = () => {
+    const id = uuidv4();
+    const newNote: Note = {
+      id,
+      title: "New Note",
+      content: "Write your notes here..."
+    }
+    notes.value.push(newNote)
+    localStorage.setItem(notesLocalStorageKey, JSON.stringify(notes.value));
+    setActiveNoteId(id)
+  }
 
+  const deleteNote = (noteId: string) => {
+    activeNoteId.value === noteId ? setActiveNoteId() : null;
+    let noteIndexToRemove = notes.value.findIndex((note: Note) => note.id === noteId)
+    notes.value.splice(noteIndexToRemove, 1)
+    localStorage.setItem(notesLocalStorageKey, JSON.stringify(notes.value));
 
-  const removeNotesFromLocalStorage = (index: number, key: string = "notes") => {
-    const noteItems = localStorage.getItem(key)
-    if (noteItems) {
-      const storedNote = JSON.parse(noteItems) as Note[]
-      storedNote.splice(index, 1)
-      localStorage.setItem(key, JSON.stringify(storedNote))
+  }
+
+  const updateNoteTitle = (title: string) => {
+    const activeNoteIndex = notes.value.findIndex((note) => note.id === activeNoteId.value);
+    if (activeNoteIndex !== -1) {
+      notes.value[activeNoteIndex].title = title
+      localStorage.setItem(notesLocalStorageKey, JSON.stringify(notes.value))
+    }
+  }
+
+  const updateNoteContent = (content: string) => {
+    const activeNoteIndex = notes.value.findIndex((note) => note.id === activeNoteId.value);
+    if (activeNoteIndex !== -1) {
+      notes.value[activeNoteIndex].content = content
+      localStorage.setItem(notesLocalStorageKey, JSON.stringify(notes.value))
     }
   }
 
 
-  const updateNotesInlocalStorage = (notes: Note[]) => {
-    localStorage.setItem("notes", JSON.stringify(notes))
-
-  }
-  //note utility
-
-  const setActiveNote = (note: Note | null) => {
-    activeNote.value = note
-  }
-
   return {
-    notes, getNotesFromLocalStorage, saveNotesToLocalStorage, deleteNote, createNote, updateNote, setActiveNote, activeNote
+    notes, loadNotesFromLocalStorage, deleteNote, createNote, activeNoteId, setActiveNoteId, updateNoteTitle, updateNoteContent
   }
 
 })
